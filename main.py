@@ -9,7 +9,6 @@ api_key = os.environ.get("GEMINI_API_KEY")
 
 client = genai.Client(api_key=api_key)
 
-# if len(sys.argv) == 2:
 try:
     user_prompt = sys.argv[1]
 except:
