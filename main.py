@@ -118,40 +118,58 @@ def main():
     # Prepare the messages for the Gemini API
     messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)])]
 
-    # Store client response
-    try:
-        client_response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
-            contents=messages,
-            config=types.GenerateContentConfig(
-                tools=[available_functions], 
-                system_instruction=system_prompt
+    for i in range (20):
+        try:
+            client_response = client.models.generate_content(
+                model="gemini-2.0-flash-001",
+                contents=messages,
+                config=types.GenerateContentConfig(
+                    tools=[available_functions], 
+                    system_instruction=system_prompt
+                )
             )
-        )
-    except Exception as e:
-        sys.exit(f"Error calling Gemini API: {str(e)}")
+        except Exception as e:
+            sys.exit(f"Error calling Gemini API: {str(e)}")
 
-    # Check if the response contains function calls
-    for function_call in client_response.function_calls:
-        verbose = False
+        # Add response candidates to messages
+        for candidate in client_response.candidates:
+            messages.append(candidate.content)
 
+        conversation_complete = False
+
+        # Iterate over function calls
+        if client_response.function_calls:
+            for function_call in client_response.function_calls:
+                verbose = False
+
+                if "--verbose" in sys.argv:
+                    verbose = True
+
+                result = call_function(function_call, verbose=verbose)
+                if result.parts[0].function_response.response:
+                    print(f"--> {result.parts[0].function_response.response}")
+                else:
+                    print(f"--> Error: {result.parts[0].function_response.error}")
+
+                # Add types.Content/result to messages
+                messages.append(result)
+        else:
+            print(client_response.text)
+            conversation_complete= True
+            break
+
+        # Handle verbose mode
         if "--verbose" in sys.argv:
-            verbose = True
+            print(f"User prompt: {user_prompt}")
+            if hasattr(client_response, 'usage_metadata'):
+                print(f"Prompt tokens: {client_response.usage_metadata.prompt_token_count}")
+                print(f"Response tokens: {client_response.usage_metadata.candidates_token_count}")
+            else:
+                print("Usage metadata not available")
 
-        result = call_function(function_call, verbose=verbose)
-        if result.parts[0].function_response.response:
-            print(f"--> {result.parts[0].function_response.response}")
-        else:
-            print(f"--> Error: {result.parts[0].function_response.error}")
+        if conversation_complete:
+            break
 
-    # Handle verbose mode
-    if "--verbose" in sys.argv:
-        print(f"User prompt: {user_prompt}")
-        if hasattr(client_response, 'usage_metadata'):
-            print(f"Prompt tokens: {client_response.usage_metadata.prompt_token_count}")
-            print(f"Response tokens: {client_response.usage_metadata.candidates_token_count}")
-        else:
-            print("Usage metadata not available")
 
 if __name__ == "__main__":
     main()
