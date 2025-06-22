@@ -1,14 +1,13 @@
 import os
 import sys
-import json
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-# Import your function implementations
 from functions.get_file_content import get_file_content
 from functions.get_files_info import get_files_info
 from functions.run_python_file import run_python_file
 from functions.write_file import write_file
+from functions.call_function import call_function
 
 def main():
 
@@ -108,6 +107,7 @@ def main():
                             schema_write_file]
     )
 
+    # Check if the user provided a prompt
     try:
         if len(sys.argv) < 2:
             sys.exit("Error: no prompt")
@@ -115,8 +115,10 @@ def main():
     except Exception as e:
         sys.exit(f"Error parsing command-line arguments: {str(e)}")
 
+    # Prepare the messages for the Gemini API
     messages = [types.Content(role="user", parts=[types.Part(text=user_prompt)])]
 
+    # Store client response
     try:
         client_response = client.models.generate_content(
             model="gemini-2.0-flash-001",
@@ -129,41 +131,7 @@ def main():
     except Exception as e:
         sys.exit(f"Error calling Gemini API: {str(e)}")
 
-    def call_function(function_call, verbose=False):
-
-        match verbose:
-            case True:
-                print(f"Calling function: {function_call.name}({function_call.args})")
-            case False:
-                print(f"Calling function: {function_call.name}")
-        
-        function_call.args["working_directory"] = "./calculator"
-
-
-        if function_call.name in function_mapping:
-
-            result = function_mapping[function_call.name](**function_call.args)
-
-            return types.Content(
-                role="tool",
-                parts=[
-                    types.Part.from_function_response(
-                        name=function_call.name,
-                        response={"result": result}
-                    )
-                ]
-            )
-        else:
-            return types.Content(
-                role="tool",
-                parts=[
-                    types.Part.from_function_response(
-                        name=function_call.name,
-                        response={"error": f"Unknown function: {function_call.name}"}
-                    )
-                ]
-            )
-
+    # Check if the response contains function calls
     for function_call in client_response.function_calls:
         verbose = False
 
@@ -176,9 +144,6 @@ def main():
         else:
             print(f"--> Error: {result.parts[0].function_response.error}")
 
-    # if client_response.text:
-    #     print(client_response)
-    
     # Handle verbose mode
     if "--verbose" in sys.argv:
         print(f"User prompt: {user_prompt}")
