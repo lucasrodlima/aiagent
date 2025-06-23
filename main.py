@@ -37,9 +37,11 @@ def main():
     - Execute Python files with optional arguments
     - Write or overwrite files
 
+    Always read the files before doing a function call plan to answer a request.
+
     All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
     """
-
+ 
     schema_get_files_info = types.FunctionDeclaration(
         name="get_files_info",
         description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
