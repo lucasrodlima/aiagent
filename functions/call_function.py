@@ -3,6 +3,9 @@ from functions.get_file_content import get_file_content
 from functions.get_files_info import get_files_info
 from functions.run_python_file import run_python_file
 from functions.write_file import write_file
+from dotenv import load_dotenv
+import os
+
 
 # Create a mapping of function names to their implementations
 function_mapping = {
@@ -14,13 +17,16 @@ function_mapping = {
 
 def call_function(function_call, verbose=False):
 
+        load_dotenv()
+        cwd = os.environ.get("WORKING_DIRECTORY")
+
         match verbose:
             case True:
                 print(f"Calling function: {function_call.name}({function_call.args})")
             case False:
                 print(f"Calling function: {function_call.name}")
         
-        function_call.args["working_directory"] = "./calculator"
+        function_call.args["working_directory"] = cwd
 
 
         if function_call.name in function_mapping:
